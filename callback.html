@@ -14,23 +14,23 @@
             align-items: center;
             min-height: 100vh;
             margin: 0;
-            padding: 20px;
+            text-align: center;
         }
         .container {
-            background: rgba(0, 0, 0, 0.2);
-            padding: 40px;
-            border-radius: 20px;
-            text-align: center;
-            max-width: 400px;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 2rem;
+            border-radius: 12px;
             backdrop-filter: blur(10px);
+            max-width: 400px;
         }
         .logo {
-            font-size: 2.5em;
-            margin-bottom: 20px;
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 1rem;
         }
         .message {
-            font-size: 1.5em;
-            margin-bottom: 20px;
+            font-size: 1.1rem;
+            margin-bottom: 1rem;
         }
         .spinner {
             border: 3px solid rgba(255, 255, 255, 0.3);
@@ -39,7 +39,7 @@
             width: 40px;
             height: 40px;
             animation: spin 1s linear infinite;
-            margin: 20px auto;
+            margin: 1rem auto;
         }
         @keyframes spin {
             0% { transform: rotate(0deg); }
@@ -56,27 +56,30 @@
     </div>
 
     <script>
-        console.log('Callback page loaded with:', window.location);
-        
-        // Get URL parameters
+        // Extract the authorization code from URL parameters
         const urlParams = new URLSearchParams(window.location.search);
         const code = urlParams.get('code');
         const state = urlParams.get('state');
         const error = urlParams.get('error');
 
+        console.log('Callback page loaded with:', { code: code ? 'present' : 'missing', state, error });
+
         if (error) {
-            console.error('OAuth error:', error);
             document.querySelector('.message').textContent = 'Authentication failed';
-            document.querySelector('p').textContent = `Error: ${error}`;
+            document.querySelector('p').textContent = 'Please try again';
+            console.error('OAuth error:', error);
         } else if (code) {
             console.log('Authorization code received, attempting to open app...');
-            
+
+            // Try multiple methods to open the app
+            let appOpened = false;
+
             // Method 1: Try Android App Link (should work automatically)
             const appLinkUrl = `https://bhavyashukla.github.io/callback?code=${encodeURIComponent(code)}&state=${encodeURIComponent(state || '')}`;
-            
+
             // Method 2: Try custom scheme
             const customSchemeUrl = `gaanavibes://callback?code=${encodeURIComponent(code)}&state=${encodeURIComponent(state || '')}`;
-            
+
             // Method 3: Try direct intent with correct package
             const intentUrl = `intent://callback?code=${encodeURIComponent(code)}&state=${encodeURIComponent(state || '')}#Intent;scheme=https;package=com.gaanavibes.app;S.browser_fallback_url=https%3A%2F%2Fbhavyashukla.github.io%2Fcallback;end`;
 
@@ -96,6 +99,30 @@
                 }, 1000);
             }
 
+            // Alternative method for manual button click
+            function tryAlternativeOpen(authCode, authState) {
+                const deepLinkUrl = `gaanavibes://callback?code=${authCode}&state=${authState}`;
+                console.log('Manual attempt - trying to open app:', deepLinkUrl);
+
+                // Try direct navigation
+                try {
+                    window.location.href = deepLinkUrl;
+                } catch (e) {
+                    console.log('Direct navigation failed:', e);
+                }
+
+                // Try creating and clicking a link
+                setTimeout(() => {
+                    const link = document.createElement('a');
+                    link.href = deepLinkUrl;
+                    link.target = '_blank';
+                    link.style.display = 'none';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                }, 500);
+            }
+
             // Try different methods with delays
             setTimeout(() => tryOpenApp(customSchemeUrl, 'Custom Scheme'), 100);
             setTimeout(() => tryOpenApp(intentUrl, 'Android Intent'), 1000);
@@ -107,7 +134,8 @@
                     Authorization code received!<br>
                     <small>Code: ${code.substring(0, 20)}...</small><br><br>
                     If the app didn't open automatically:<br><br>
-                    <button onclick="window.location.href='gaanavibes://callback?code=${code}&state=${state || ''}'" style="background: #1DB954; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; margin: 5px;">📱 Open GaanaVibes App</button><br><br>
+                    <a href="gaanavibes://callback?code=${code}&state=${state || ''}" style="display: inline-block; background: #1DB954; color: white; text-decoration: none; padding: 15px 25px; border-radius: 5px; margin: 10px; font-weight: bold;">📱 Open GaanaVibes App</a><br>
+                    <button onclick="tryAlternativeOpen('${code}', '${state || ''}')" style="background: #1DB954; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; margin: 5px;">🔄 Try Alternative Method</button><br><br>
                     Or manually:<br>
                     1. Open your GaanaVibes development build<br>
                     2. Scan the QR code again<br>
@@ -117,9 +145,8 @@
             }, 2000);
 
         } else {
-            console.error('No authorization code received');
             document.querySelector('.message').textContent = 'No authorization code received';
-            document.querySelector('p').textContent = 'Please try again';
+            document.querySelector('p').textContent = 'Please try the login process again';
         }
     </script>
 </body>
