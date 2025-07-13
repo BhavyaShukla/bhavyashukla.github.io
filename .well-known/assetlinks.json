@@ -3,7 +3,7 @@
     "relation": ["delegate_permission/common.handle_all_urls"],
     "target": {
       "namespace": "android_app",
-      "package_name": "host.exp.exponent",
+      "package_name": "com.gaanavibes.app",
       "sha256_cert_fingerprints": [
         "56:D7:8D:77:B1:66:58:C1:7B:F3:C0:BD:9F:9E:D1:EC:8B:1F:53:9F:ED:52:E7:A7:19:8E:A8:6A:05:1A:FB:21"
       ]
