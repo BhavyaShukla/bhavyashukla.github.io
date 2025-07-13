@@ -74,14 +74,14 @@
             // Try multiple methods to open the app
             let appOpened = false;
 
-            // Method 1: Try Android App Link (should work automatically)
-            const appLinkUrl = `https://bhavyashukla.github.io/callback?code=${encodeURIComponent(code)}&state=${encodeURIComponent(state || '')}`;
-
-            // Method 2: Try custom scheme
+            // Method 1: Try custom scheme (recommended by Expo)
             const customSchemeUrl = `gaanavibes://callback?code=${encodeURIComponent(code)}&state=${encodeURIComponent(state || '')}`;
 
+            // Method 2: Try Android App Link (fallback)
+            const appLinkUrl = `https://bhavyashukla.github.io/callback?code=${encodeURIComponent(code)}&state=${encodeURIComponent(state || '')}`;
+
             // Method 3: Try direct intent with correct package
-            const intentUrl = `intent://callback?code=${encodeURIComponent(code)}&state=${encodeURIComponent(state || '')}#Intent;scheme=https;package=com.gaanavibes.app;S.browser_fallback_url=https%3A%2F%2Fbhavyashukla.github.io%2Fcallback;end`;
+            const intentUrl = `intent://callback?code=${encodeURIComponent(code)}&state=${encodeURIComponent(state || '')}#Intent;scheme=gaanavibes;package=com.gaanavibes.app;S.browser_fallback_url=https%3A%2F%2Fbhavyashukla.github.io%2Fcallback;end`;
 
             // Create invisible iframe to trigger app opening
             function tryOpenApp(url, method) {
@@ -104,30 +104,47 @@
                 const deepLinkUrl = `gaanavibes://callback?code=${authCode}&state=${authState}`;
                 console.log('Manual attempt - trying to open app:', deepLinkUrl);
 
-                // Method 1: Try creating and clicking a link with user gesture
-                const link = document.createElement('a');
-                link.href = deepLinkUrl;
-                link.target = '_self';
-                link.style.display = 'none';
-                document.body.appendChild(link);
+                // Method 1: Try direct window.location assignment
+                try {
+                    window.location.assign(deepLinkUrl);
+                    console.log('Attempted window.location.assign');
+                } catch (e) {
+                    console.log('window.location.assign failed:', e);
+                }
 
-                // Simulate user click
-                const clickEvent = new MouseEvent('click', {
-                    view: window,
-                    bubbles: true,
-                    cancelable: true
-                });
-                link.dispatchEvent(clickEvent);
-                document.body.removeChild(link);
-
-                // Method 2: Try window.open as fallback
+                // Method 2: Try window.location.href as fallback
                 setTimeout(() => {
                     try {
-                        window.open(deepLinkUrl, '_self');
+                        window.location.href = deepLinkUrl;
+                        console.log('Attempted window.location.href');
+                    } catch (e) {
+                        console.log('window.location.href failed:', e);
+                    }
+                }, 500);
+
+                // Method 3: Try window.open as last resort
+                setTimeout(() => {
+                    try {
+                        window.open(deepLinkUrl, '_blank');
+                        console.log('Attempted window.open');
                     } catch (e) {
                         console.log('window.open failed:', e);
                     }
-                }, 500);
+                }, 1000);
+            }
+
+            // Try Android App Link method
+            function tryAppLink(authCode, authState) {
+                const appLinkUrl = `https://bhavyashukla.github.io/callback?code=${authCode}&state=${authState}`;
+                console.log('Trying Android App Link:', appLinkUrl);
+
+                // This should trigger the Android App Link and open the app
+                try {
+                    window.location.href = appLinkUrl;
+                    console.log('Attempted Android App Link navigation');
+                } catch (e) {
+                    console.log('Android App Link failed:', e);
+                }
             }
 
             // Copy deep link to clipboard
@@ -152,13 +169,20 @@
                 }
             }
 
-            // Skip automatic attempts to avoid infinite loops
-            // User will need to manually tap buttons
-            console.log('Callback page loaded, waiting for user interaction');
-            console.log('Available URLs:');
+            // Try automatic deep link with custom scheme (Expo recommended)
+            setTimeout(() => {
+                console.log('Attempting automatic deep link with custom scheme:', customSchemeUrl);
+                try {
+                    window.location.href = customSchemeUrl;
+                } catch (e) {
+                    console.log('Automatic custom scheme failed:', e);
+                }
+            }, 500);
+
+            console.log('Available URLs for manual attempts:');
             console.log('- Custom Scheme:', customSchemeUrl);
+            console.log('- Android App Link:', appLinkUrl);
             console.log('- Android Intent:', intentUrl);
-            console.log('- App Link:', appLinkUrl);
 
             // Show success message after attempts
             setTimeout(() => {
@@ -167,7 +191,8 @@
                     Authorization code received!<br>
                     <small>Code: ${code.substring(0, 20)}...</small><br><br>
                     If the app didn't open automatically:<br><br>
-                    <button onclick="tryAlternativeOpen('${code}', '${state || ''}')" style="background: #1DB954; color: white; border: none; padding: 15px 25px; border-radius: 5px; cursor: pointer; margin: 10px; font-weight: bold;">📱 Open GaanaVibes App</button><br>
+                    <button onclick="tryAlternativeOpen('${code}', '${state || ''}')" style="background: #1DB954; color: white; border: none; padding: 15px 25px; border-radius: 5px; cursor: pointer; margin: 10px; font-weight: bold;">📱 Open GaanaVibes App (Custom Scheme)</button><br>
+                    <button onclick="tryAppLink('${code}', '${state || ''}')" style="background: #1DB954; color: white; border: none; padding: 15px 25px; border-radius: 5px; cursor: pointer; margin: 10px; font-weight: bold;">🔗 Try Android App Link</button><br>
                     <button onclick="tryOpenApp(customSchemeUrl, 'Custom Scheme')" style="background: #1DB954; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; margin: 5px;">🔄 Try iframe method</button><br>
                     <button onclick="copyDeepLink('${code}', '${state || ''}')" style="background: #FF6B35; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; margin: 5px;">📋 Copy Deep Link</button><br><br>
                     <div id="deepLinkUrl" style="background: #f0f0f0; padding: 10px; border-radius: 5px; font-family: monospace; font-size: 12px; word-break: break-all; margin: 10px 0; display: none;"></div>
