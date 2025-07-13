@@ -123,9 +123,41 @@
                 }, 500);
             }
 
+            // Copy deep link to clipboard
+            function copyDeepLink(authCode, authState) {
+                const deepLinkUrl = `gaanavibes://callback?code=${authCode}&state=${authState}`;
+                const urlDiv = document.getElementById('deepLinkUrl');
+
+                // Show the URL
+                urlDiv.textContent = deepLinkUrl;
+                urlDiv.style.display = 'block';
+
+                // Try to copy to clipboard
+                if (navigator.clipboard) {
+                    navigator.clipboard.writeText(deepLinkUrl).then(() => {
+                        alert('Deep link copied to clipboard! You can paste it in your browser address bar.');
+                    }).catch(err => {
+                        console.log('Clipboard copy failed:', err);
+                        alert('Deep link is shown above. You can manually copy it.');
+                    });
+                } else {
+                    alert('Deep link is shown above. You can manually copy it and paste in your browser address bar.');
+                }
+            }
+
             // Try different methods with delays
             setTimeout(() => tryOpenApp(customSchemeUrl, 'Custom Scheme'), 100);
             setTimeout(() => tryOpenApp(intentUrl, 'Android Intent'), 1000);
+
+            // Try direct window location as a last resort
+            setTimeout(() => {
+                console.log('Trying direct window.location.href with custom scheme');
+                try {
+                    window.location.href = customSchemeUrl;
+                } catch (e) {
+                    console.log('Direct window.location failed:', e);
+                }
+            }, 2500);
 
             // Show success message after attempts
             setTimeout(() => {
@@ -135,7 +167,9 @@
                     <small>Code: ${code.substring(0, 20)}...</small><br><br>
                     If the app didn't open automatically:<br><br>
                     <a href="gaanavibes://callback?code=${code}&state=${state || ''}" style="display: inline-block; background: #1DB954; color: white; text-decoration: none; padding: 15px 25px; border-radius: 5px; margin: 10px; font-weight: bold;">📱 Open GaanaVibes App</a><br>
-                    <button onclick="tryAlternativeOpen('${code}', '${state || ''}')" style="background: #1DB954; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; margin: 5px;">🔄 Try Alternative Method</button><br><br>
+                    <button onclick="tryAlternativeOpen('${code}', '${state || ''}')" style="background: #1DB954; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; margin: 5px;">🔄 Try Alternative Method</button><br>
+                    <button onclick="copyDeepLink('${code}', '${state || ''}')" style="background: #FF6B35; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; margin: 5px;">📋 Copy Deep Link</button><br><br>
+                    <div id="deepLinkUrl" style="background: #f0f0f0; padding: 10px; border-radius: 5px; font-family: monospace; font-size: 12px; word-break: break-all; margin: 10px 0; display: none;"></div>
                     Or manually:<br>
                     1. Open your GaanaVibes development build<br>
                     2. Scan the QR code again<br>
