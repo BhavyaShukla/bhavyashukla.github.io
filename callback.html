@@ -62,23 +62,62 @@
         const state = urlParams.get('state');
         const error = urlParams.get('error');
 
+        console.log('Callback page loaded with:', { code: code ? 'present' : 'missing', state, error });
+
         if (error) {
             document.querySelector('.message').textContent = 'Authentication failed';
             document.querySelector('p').textContent = 'Please try again';
             console.error('OAuth error:', error);
         } else if (code) {
-            // Redirect to the app with the authorization code
-            // This will trigger the Android App Link
-            const appUrl = `https://bhavyashukla.github.io/callback?code=${encodeURIComponent(code)}&state=${encodeURIComponent(state || '')}`;
-            
-            // Try to open the app
-            window.location.href = appUrl;
-            
-            // Fallback message
+            console.log('Authorization code received, attempting to open app...');
+
+            // Try multiple methods to open the app
+            let appOpened = false;
+
+            // Method 1: Try custom scheme (primary)
+            const customSchemeUrl = `gaanavibes://callback?code=${encodeURIComponent(code)}&state=${encodeURIComponent(state || '')}`;
+
+            // Method 2: Try Expo Go URL
+            const expoUrl = `exp://192.168.1.6:8081/--/callback?code=${encodeURIComponent(code)}&state=${encodeURIComponent(state || '')}`;
+
+            // Method 3: Try direct intent (Android)
+            const intentUrl = `intent://callback?code=${encodeURIComponent(code)}&state=${encodeURIComponent(state || '')}#Intent;scheme=gaanavibes;package=host.exp.exponent;end`;
+
+            // Create invisible iframe to trigger app opening
+            function tryOpenApp(url, method) {
+                console.log(`Trying to open app with ${method}:`, url);
+
+                // Create hidden iframe
+                const iframe = document.createElement('iframe');
+                iframe.style.display = 'none';
+                iframe.src = url;
+                document.body.appendChild(iframe);
+
+                // Remove iframe after attempt
+                setTimeout(() => {
+                    document.body.removeChild(iframe);
+                }, 1000);
+            }
+
+            // Try different methods with delays
+            setTimeout(() => tryOpenApp(customSchemeUrl, 'Custom Scheme'), 100);
+            setTimeout(() => tryOpenApp(expoUrl, 'Expo URL'), 500);
+            setTimeout(() => tryOpenApp(intentUrl, 'Android Intent'), 1000);
+
+            // Show success message after attempts
             setTimeout(() => {
                 document.querySelector('.message').textContent = 'Authentication successful!';
-                document.querySelector('p').textContent = 'If the app didn\'t open automatically, please open GaanaVibes manually.';
+                document.querySelector('p').innerHTML = `
+                    Authorization code received!<br>
+                    <small>Code: ${code.substring(0, 20)}...</small><br><br>
+                    If the app didn't open automatically:<br>
+                    1. Open Expo Go manually<br>
+                    2. Scan the QR code again<br>
+                    3. The app should now be authenticated<br><br>
+                    <button onclick="window.close()" style="background: #1DB954; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer;">Close this page</button>
+                `;
             }, 2000);
+
         } else {
             document.querySelector('.message').textContent = 'No authorization code received';
             document.querySelector('p').textContent = 'Please try the login process again';
