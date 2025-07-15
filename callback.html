@@ -64,12 +64,51 @@
 
         console.log('Callback page loaded with:', { code: code ? 'present' : 'missing', state, error });
 
+        // Check if we're in a popup window (web OAuth flow)
+        const isPopup = window.opener && window.opener !== window;
+        console.log('Is popup window:', isPopup);
+
         if (error) {
             document.querySelector('.message').textContent = 'Authentication failed';
             document.querySelector('p').textContent = 'Please try again';
             console.error('OAuth error:', error);
+
+            // If in popup, send error to parent
+            if (isPopup) {
+                try {
+                    window.opener.postMessage({
+                        type: 'expo-auth-session',
+                        error: error,
+                        errorDescription: urlParams.get('error_description')
+                    }, window.location.origin);
+                    window.close();
+                } catch (e) {
+                    console.error('Failed to send error to parent window:', e);
+                }
+            }
         } else if (code) {
-            console.log('Authorization code received, attempting to open app...');
+            console.log('Authorization code received');
+
+            // If we're in a popup (web platform), use postMessage
+            if (isPopup) {
+                console.log('Web popup detected - sending code via postMessage');
+                try {
+                    // Send the authorization code back to the parent window
+                    window.opener.postMessage({
+                        type: 'expo-auth-session',
+                        url: window.location.href
+                    }, window.location.origin);
+
+                    // Close the popup
+                    window.close();
+                    return;
+                } catch (e) {
+                    console.error('Failed to send code to parent window:', e);
+                }
+            }
+
+            // Mobile deep linking fallback
+            console.log('Mobile platform detected - attempting deep link...');
 
             // Try multiple methods to open the app
             let appOpened = false;
